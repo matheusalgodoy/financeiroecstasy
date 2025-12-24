@@ -165,7 +165,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-indigo-500/30 pb-20">
+    <main className="min-h-screen bg-black text-white selection:bg-indigo-500/30 pb-20">
       {/* Toast Container */}
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
         {toasts.map(toast => (
