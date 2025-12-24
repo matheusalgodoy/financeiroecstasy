@@ -165,8 +165,23 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-zinc-100 selection:bg-indigo-500/30">
-      {/* Background Gradient */}
+    <div className="min-h-screen bg-black text-white selection:bg-indigo-500/30 pb-20">
+      {/* Toast Container */}
+      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+        {toasts.map(toast => (
+          <div key={toast.id} className="pointer-events-auto bg-zinc-900/90 backdrop-blur-md border border-indigo-500/50 p-4 rounded-xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-right fade-in duration-300 w-80">
+            <div className="bg-indigo-500/20 p-2 rounded-lg text-indigo-400">
+              <DollarSign size={20} />
+            </div>
+            <div>
+              <h4 className="font-bold text-white text-sm">{toast.title}</h4>
+              <p className="text-zinc-400 text-xs">{toast.message}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Background Gradients */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-500/10 rounded-full blur-[120px]" />
