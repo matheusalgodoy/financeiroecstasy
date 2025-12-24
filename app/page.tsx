@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Trash2, Edit, Plus, RefreshCw } from 'lucide-react';
+import { Trash2, Edit, Plus, RefreshCw, DollarSign, TrendingUp, Clock, ShoppingBag } from 'lucide-react';
 
 interface Sale {
   id: string;
@@ -17,12 +17,29 @@ const PRODUCTS = [
   { name: 'FW PRO', price: 800 },
 ];
 
+function getProductCost(name: string): number {
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes('infinity')) return 250;
+  if (lowerName.includes('fw pro')) return 430;
+  return 0;
+}
+
 export default function Home() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<{name: string, value: string, buyer: string, status: 'pending' | 'delivered' | 'cancelled'}>({ name: '', value: '', buyer: '', status: 'pending' });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [productMode, setProductMode] = useState<string>('');
+
+  // Financial Calculations
+  const totalRevenue = sales.reduce((acc, curr) => acc + curr.value, 0);
+  const pendingRevenue = sales.filter(s => s.status === 'pending').reduce((acc, curr) => acc + curr.value, 0);
+  const deliveredSales = sales.filter(s => s.status === 'delivered');
+  const netProfit = deliveredSales.reduce((acc, curr) => {
+    const cost = getProductCost(curr.name);
+    return acc + (curr.value - cost);
+  }, 0);
+  const salesCount = sales.length;
 
   const fetchSales = async () => {
     setLoading(true);
