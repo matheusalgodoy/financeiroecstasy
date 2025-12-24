@@ -55,6 +55,42 @@ export default function Home() {
 
   useEffect(() => {
     fetchSales();
+
+    // Request Notification Permission
+    if ('Notification' in window) {
+      Notification.requestPermission();
+    }
+
+    // Subscribe to Supabase Realtime
+    const channel = supabase
+      .channel('sales_realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'sales' },
+        (payload) => {
+          console.log('New sale received:', payload);
+          fetchSales(); // Refresh list
+
+          // Show Notification
+          if (Notification.permission === 'granted') {
+            const newSale = payload.new as Sale;
+            new Notification('Nova Venda Recebida! 🤑', {
+              body: `${newSale.name} - R$ ${newSale.value.toFixed(2)}\nComprador: ${newSale.buyer}`,
+              icon: '/favicon.ico', // Tries to use favicon if available
+              tag: 'new-sale', // Prevent stacking too many notifications
+            });
+            
+            // Play a sound (optional, but cool)
+            const audio = new Audio('/notification.mp3'); // We might not have this file, but logic is sound. 
+            // Better to not break if file missing, so just notification for now.
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleProductSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
