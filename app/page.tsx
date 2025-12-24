@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { supabase } from '@/lib/supabase';
 import { Trash2, Edit, Plus, RefreshCw, DollarSign, TrendingUp, Clock, ShoppingBag } from 'lucide-react';
 
 interface Sale {
