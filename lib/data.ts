@@ -1,14 +1,4 @@
-import fs from 'fs';
-import path from 'path';
-
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DATA_FILE = path.join(DATA_DIR, 'sales.json');
-const METADATA_FILE = path.join(DATA_DIR, 'metadata.json');
-
-// Ensure directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
+import { supabase } from './supabase';
 
 export interface Sale {
   id: string;
@@ -16,40 +6,81 @@ export interface Sale {
   value: number;
   buyer: string;
   status: 'pending' | 'delivered' | 'cancelled';
+  created_at?: string;
 }
 
 export interface Metadata {
   discordMessageId?: string;
 }
 
-export function getSales(): Sale[] {
-  if (!fs.existsSync(DATA_FILE)) {
+export async function getSales(): Promise<Sale[]> {
+  const { data, error } = await supabase
+    .from('sales')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching sales:', error);
     return [];
   }
-  const data = fs.readFileSync(DATA_FILE, 'utf-8');
-  try {
-    return JSON.parse(data);
-  } catch (error) {
-    return [];
-  }
+
+  return data || [];
 }
 
-export function saveSales(sales: Sale[]) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(sales, null, 2));
+export async function createSale(sale: Sale) {
+  const { error } = await supabase
+    .from('sales')
+    .insert([sale]);
+  
+  if (error) throw error;
 }
 
-export function getMetadata(): Metadata {
-  if (!fs.existsSync(METADATA_FILE)) {
+export async function updateSale(sale: Sale) {
+  const { error } = await supabase
+    .from('sales')
+    .update({
+      name: sale.name,
+      value: sale.value,
+      buyer: sale.buyer,
+      status: sale.status
+    })
+    .eq('id', sale.id);
+
+  if (error) throw error;
+}
+
+export async function deleteSale(id: string) {
+  const { error } = await supabase
+    .from('sales')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function getMetadata(): Promise<Metadata> {
+  const { data, error } = await supabase
+    .from('app_metadata')
+    .select('value')
+    .eq('key', 'discord_message_id')
+    .single();
+
+  if (error || !data) {
     return {};
   }
-  const data = fs.readFileSync(METADATA_FILE, 'utf-8');
-  try {
-    return JSON.parse(data);
-  } catch (error) {
-    return {};
-  }
+
+  return { discordMessageId: data.value };
 }
 
-export function saveMetadata(metadata: Metadata) {
-  fs.writeFileSync(METADATA_FILE, JSON.stringify(metadata, null, 2));
+export async function saveMetadata(metadata: Metadata) {
+  if (metadata.discordMessageId) {
+    const { error } = await supabase
+      .from('app_metadata')
+      .upsert({ 
+        key: 'discord_message_id', 
+        value: metadata.discordMessageId 
+      }, { onConflict: 'key' });
+      
+    if (error) console.error('Error saving metadata:', error);
+  }
 }

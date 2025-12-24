@@ -66,7 +66,7 @@ export async function notifyDiscord(sales: Sale[]) {
       },
       {
         name: `✅ Últimas 5 Entregas`,
-        value: formatTable(delivered.slice(-5).reverse()), // Show newest first
+        value: formatTable(delivered.slice(0, 5)), // Show newest first (assuming sales are already sorted DESC)
         inline: false,
       }
     ],
@@ -76,7 +76,7 @@ export async function notifyDiscord(sales: Sale[]) {
     timestamp: new Date().toISOString(),
   };
 
-  const metadata = getMetadata();
+  const metadata = await getMetadata();
   let messageId = metadata.discordMessageId;
 
   try {
@@ -98,17 +98,17 @@ export async function notifyDiscord(sales: Sale[]) {
       }
     }
 
-    // Create new message if no ID or edit failed
+    // Create new message if no ID or previous one deleted
     if (!messageId) {
       const response = await axios.post(`${WEBHOOK_URL}?wait=true`, {
         embeds: [embed],
       });
       
       if (response.data && response.data.id) {
-        saveMetadata({ ...metadata, discordMessageId: response.data.id });
+        await saveMetadata({ discordMessageId: response.data.id });
       }
     }
   } catch (error) {
-    console.error('Failed to send/update Discord webhook', error);
+    console.error('Error sending Discord notification:', error);
   }
 }

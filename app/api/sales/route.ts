@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getSales, saveSales, Sale } from '@/lib/data';
+import { getSales, createSale, updateSale, deleteSale, Sale } from '@/lib/data';
 import { notifyDiscord } from '@/lib/discord';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function GET() {
-  const sales = getSales();
+  const sales = await getSales();
   return NextResponse.json(sales);
 }
 
@@ -23,14 +23,13 @@ export async function POST(request: Request) {
       value: Number(value),
       buyer: buyer || 'Não informado',
       status: status || 'pending',
+      created_at: new Date().toISOString(),
     };
 
-    const sales = getSales();
-    sales.push(newSale);
-    saveSales(sales);
+    await createSale(newSale);
     
-    // Trigger webhook in background (don't await to keep UI fast, or await if consistency is key)
-    // We await to ensure we catch errors if needed, but for Discord we can just fire and forget or await.
+    // Fetch updated list for Discord
+    const sales = await getSales();
     await notifyDiscord(sales);
 
     return NextResponse.json(newSale);
@@ -45,17 +44,20 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { id, name, value, status, buyer } = body;
 
-    const sales = getSales();
-    const index = sales.findIndex(s => s.id === id);
+    const updatedSale: Sale = {
+      id,
+      name,
+      value: Number(value),
+      buyer: buyer || 'Não informado',
+      status,
+    };
     
-    if (index !== -1) {
-      sales[index] = { ...sales[index], name, value: Number(value), status, buyer: buyer || sales[index].buyer || 'Não informado' };
-      saveSales(sales);
-      await notifyDiscord(sales);
-      return NextResponse.json(sales[index]);
-    }
+    await updateSale(updatedSale);
 
-    return NextResponse.json({ error: 'Sale not found' }, { status: 404 });
+    const sales = await getSales();
+    await notifyDiscord(sales);
+    
+    return NextResponse.json(updatedSale);
   } catch (error) {
     console.error('PUT Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -69,9 +71,9 @@ export async function DELETE(request: Request) {
 
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-    let sales = getSales();
-    sales = sales.filter(s => s.id !== id);
-    saveSales(sales);
+    await deleteSale(id);
+
+    const sales = await getSales();
     await notifyDiscord(sales);
 
     return NextResponse.json({ success: true });
